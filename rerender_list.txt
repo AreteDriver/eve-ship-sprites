@@ -1,0 +1,54 @@
+# Ships requiring re-render (side view instead of top-down)
+# These ships need manual rotation override in render_ship.py
+# Format: faction/class/ship.png
+
+## MINMATAR (most affected - tall/narrow vertical designs)
+minmatar/frigate/rifter.png
+minmatar/frigate/breacher.png
+minmatar/frigate/vigil.png
+minmatar/cruiser/rupture.png
+minmatar/cruiser/stabber.png
+minmatar/cruiser/bellicose.png
+minmatar/cruiser/scythe.png
+minmatar/cruiser/vagabond.png
+minmatar/cruiser/huginn.png
+minmatar/cruiser/muninn.png
+minmatar/cruiser/broadsword.png
+minmatar/cruiser/rapier.png
+minmatar/battlecruiser/tornado.png
+minmatar/battleship/tempest.png
+minmatar/battleship/maelstorm.png
+minmatar/battleship/vargur.png
+minmatar/capital/naglfar.png
+minmatar/capital/fenrir.png
+
+## AMARR (curved hull designs render from side)
+amarr/frigate/tormentor.png
+amarr/cruiser/augoror.png
+amarr/battlecruiser/oracle.png
+amarr/battleship/apocalypse.png
+amarr/battleship/apocalypse_old.png
+amarr/battleship/abaddon.png
+amarr/battleship/armageddon.png
+amarr/battleship/paladin.png
+amarr/battleship/redeemer.png
+amarr/capital/aeon.png
+amarr/capital/revelation.png
+amarr/capital/avatar.png
+
+## GALLENTE (organic curved hulls)
+gallente/cruiser/vexor.png
+gallente/battleship/dominix.png
+gallente/battleship/hyperion.png
+
+## NOTES
+# Root cause: render_ship.py orient_for_topdown() assumes smallest
+# dimension is always vertical height. Ships that are tall/narrow
+# when viewed from above get rotated incorrectly.
+#
+# Fix options:
+# 1. Add manual rotation overrides for these ships
+# 2. Use aspect ratio heuristics (if width/length ratio is too extreme)
+# 3. Store ship metadata with correct orientation axis
+#
+# Total: ~33 ships need re-rendering out of 318 (~10%)

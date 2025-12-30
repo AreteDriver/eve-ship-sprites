@@ -1,0 +1,9 @@
+# Third-party STL repository (clone separately if needed)
+EvE-3D-Printing/
+
+# Large archives
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db

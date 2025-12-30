@@ -1,0 +1,23 @@
+{
+  "faction": "ore",
+  "sprite_size": 512,
+  "columns": 3,
+  "rows": 5,
+  "sheet_width": 1536,
+  "sheet_height": 2560,
+  "sprites": [
+    {"name": "covetor", "class": "barge", "x": 0, "y": 0, "index": 0},
+    {"name": "procurer", "class": "barge", "x": 512, "y": 0, "index": 1},
+    {"name": "retriever", "class": "barge", "x": 1024, "y": 0, "index": 2},
+    {"name": "bowhead", "class": "capital", "x": 0, "y": 512, "index": 3},
+    {"name": "rorqual", "class": "capital", "x": 512, "y": 512, "index": 4},
+    {"name": "orca", "class": "command", "x": 1024, "y": 512, "index": 5},
+    {"name": "porpoise", "class": "command", "x": 0, "y": 1024, "index": 6},
+    {"name": "hulk", "class": "exhumer", "x": 512, "y": 1024, "index": 7},
+    {"name": "mackinaw", "class": "exhumer", "x": 1024, "y": 1024, "index": 8},
+    {"name": "skiff", "class": "exhumer", "x": 0, "y": 1536, "index": 9},
+    {"name": "endurance", "class": "frigate", "x": 512, "y": 1536, "index": 10},
+    {"name": "prospect", "class": "frigate", "x": 1024, "y": 1536, "index": 11},
+    {"name": "venture", "class": "frigate", "x": 0, "y": 2048, "index": 12}
+  ]
+}

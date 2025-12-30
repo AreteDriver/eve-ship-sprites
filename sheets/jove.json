@@ -1,0 +1,12 @@
+{
+  "faction": "jove",
+  "sprite_size": 512,
+  "columns": 1,
+  "rows": 2,
+  "sheet_width": 512,
+  "sheet_height": 1024,
+  "sprites": [
+    {"name": "jove battleship", "class": "battleship", "x": 0, "y": 0, "index": 0},
+    {"name": "capsule", "class": "capsule", "x": 0, "y": 512, "index": 1}
+  ]
+}

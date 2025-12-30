@@ -1,0 +1,21 @@
+{
+  "faction": "rogue",
+  "sprite_size": 512,
+  "columns": 3,
+  "rows": 4,
+  "sheet_width": 1536,
+  "sheet_height": 2048,
+  "sprites": [
+    {"name": "rogue heavy 1", "class": "rogue", "x": 0, "y": 0, "index": 0},
+    {"name": "rogue heavy 2", "class": "rogue", "x": 512, "y": 0, "index": 1},
+    {"name": "rogue light 1", "class": "rogue", "x": 1024, "y": 0, "index": 2},
+    {"name": "rogue light 2", "class": "rogue", "x": 0, "y": 512, "index": 3},
+    {"name": "rogue light 3", "class": "rogue", "x": 512, "y": 512, "index": 4},
+    {"name": "rogue light 4", "class": "rogue", "x": 1024, "y": 512, "index": 5},
+    {"name": "rogue light 5", "class": "rogue", "x": 0, "y": 1024, "index": 6},
+    {"name": "rogue medium 1", "class": "rogue", "x": 512, "y": 1024, "index": 7},
+    {"name": "rogue medium 2", "class": "rogue", "x": 1024, "y": 1024, "index": 8},
+    {"name": "rogue medium 3", "class": "rogue", "x": 0, "y": 1536, "index": 9},
+    {"name": "rogue medium 4", "class": "rogue", "x": 512, "y": 1536, "index": 10}
+  ]
+}

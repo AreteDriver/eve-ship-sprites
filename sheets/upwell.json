@@ -1,0 +1,13 @@
+{
+  "faction": "upwell",
+  "sprite_size": 512,
+  "columns": 1,
+  "rows": 3,
+  "sheet_width": 512,
+  "sheet_height": 1536,
+  "sprites": [
+    {"name": "skybreaker", "class": "upwell", "x": 0, "y": 0, "index": 0},
+    {"name": "stormbringer", "class": "upwell", "x": 0, "y": 512, "index": 1},
+    {"name": "thunderchild", "class": "upwell", "x": 0, "y": 1024, "index": 2}
+  ]
+}

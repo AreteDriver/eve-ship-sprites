@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+"""
+Blender script to render a top-down orthographic view of an STL file.
+Usage: blender --background --python render_ship.py -- input.stl output.png [resolution]
+"""
+
+import bpy
+import sys
+import os
+import math
+import json
+
+# Path to orientation overrides (relative to script location)
+ORIENTATIONS_FILE = os.path.join(os.path.dirname(__file__), "ship_orientations.json")
+
+def load_orientations():
+    """Load ship orientation overrides from JSON file."""
+    if os.path.exists(ORIENTATIONS_FILE):
+        with open(ORIENTATIONS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def get_ship_key(output_path):
+    """Extract ship key from output path (e.g., 'amarr/frigate/punisher')."""
+    # Normalize path and extract faction/class/ship
+    path = output_path.replace('\\', '/')
+    parts = path.split('/')
+
+    # Find the ship name (without .png)
+    ship_name = os.path.splitext(parts[-1])[0]
+
+    # Try to find faction/class/ship pattern
+    for i, part in enumerate(parts):
+        if part in ['amarr', 'caldari', 'gallente', 'minmatar', 'pirate',
+                    'ore', 'jove', 'concord', 'triglavian', 'sleeper', 'rogue']:
+            if i + 2 < len(parts):
+                return f"{parts[i]}/{parts[i+1]}/{ship_name}"
+            elif i + 1 < len(parts):
+                return f"{parts[i]}/{ship_name}"
+
+    return None
+
+def clear_scene():
+    """Remove all objects from the scene."""
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+
+def import_stl(filepath):
+    """Import an STL file and return the imported object."""
+    bpy.ops.wm.stl_import(filepath=filepath)
+    obj = bpy.context.selected_objects[0]
+    return obj
+
+def setup_camera_topdown(obj):
+    """Set up an orthographic camera looking down Z axis at the object."""
+    bpy.context.view_layer.update()
+
+    dims = obj.dimensions
+    # After orient_for_topdown, X=width, Y=length, Z=height
+    ortho_scale = max(dims.x, dims.y) * 1.1
+
+    # Camera above looking down -Z
+    cam_location = (0, 0, dims.z + 100)
+
+    print(f"Camera: pos={cam_location}, ortho_scale={ortho_scale:.1f}")
+
+    bpy.ops.object.camera_add(location=cam_location)
+    camera = bpy.context.object
+    camera.rotation_euler = (0, 0, 0)  # Look along -Z
+    camera.data.type = 'ORTHO'
+    camera.data.ortho_scale = ortho_scale
+
+    bpy.context.scene.camera = camera
+    return camera, cam_location
+
+def setup_lighting(camera_location):
+    """Set up even lighting from camera direction for clear sprite rendering."""
+    # Key light from camera direction
+    bpy.ops.object.light_add(type='SUN', location=camera_location)
+    sun = bpy.context.object
+    sun.data.energy = 3
+
+    # Additional fill lights from different angles
+    bpy.ops.object.light_add(type='SUN', location=(100, 100, 100))
+    fill1 = bpy.context.object
+    fill1.data.energy = 1
+
+    bpy.ops.object.light_add(type='SUN', location=(-100, -100, 100))
+    fill2 = bpy.context.object
+    fill2.data.energy = 1
+
+def setup_material(obj):
+    """Apply a simple material to the object."""
+    mat = bpy.data.materials.new(name="ShipMaterial")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0.4, 0.45, 0.5, 1.0)  # Metallic gray-blue
+    bsdf.inputs["Metallic"].default_value = 0.8
+    bsdf.inputs["Roughness"].default_value = 0.3
+
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+
+def setup_render_settings(output_path, resolution=512):
+    """Configure render settings for sprite output."""
+    scene = bpy.context.scene
+    scene.render.engine = 'CYCLES'
+    scene.cycles.samples = 64  # Reasonable quality without too much time
+    scene.cycles.use_denoising = True
+
+    scene.render.resolution_x = resolution
+    scene.render.resolution_y = resolution
+    scene.render.film_transparent = True  # Transparent background
+
+    scene.render.image_settings.file_format = 'PNG'
+    scene.render.image_settings.color_mode = 'RGBA'
+    scene.render.filepath = output_path
+
+def orient_with_override(obj, override):
+    """Apply manual orientation override from metadata.
+
+    Args:
+        obj: The Blender object to orient
+        override: Dict with 'axis' (which axis should point UP) and 'rotation' (Z rotation)
+    """
+    bpy.context.view_layer.objects.active = obj
+
+    dims = obj.dimensions.copy()
+    print(f"Original dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
+    print(f"Applying override: axis={override['axis']}, rotation={override.get('rotation', 0)}")
+
+    up_axis = override.get('axis', 'z')
+    extra_rotation = override.get('rotation', 0)
+
+    # Rotate to put specified axis pointing up (becoming Z)
+    if up_axis == 'x':
+        # X should point up, rotate around Y by -90°
+        obj.rotation_euler.y = math.radians(-90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    elif up_axis == 'y':
+        # Y should point up, rotate around X by 90°
+        obj.rotation_euler.x = math.radians(90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    # else Z is already up, no rotation needed
+
+    # Orient longest dimension along Y (nose pointing up in render)
+    dims = obj.dimensions
+    if dims.x > dims.y:
+        obj.rotation_euler.z = math.radians(90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
+    # Apply any extra Z rotation from metadata
+    if extra_rotation != 0:
+        obj.rotation_euler.z = math.radians(extra_rotation)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
+    dims = obj.dimensions
+    print(f"Final dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
+
+
+def orient_for_topdown(obj):
+    """Rotate the model so Z is the height axis (smallest dimension).
+
+    This ensures the camera can always look down Z to get a top-down view.
+    Also orients so the longest dimension is along Y (nose pointing up).
+    """
+    bpy.context.view_layer.objects.active = obj
+
+    dims = obj.dimensions.copy()
+    print(f"Original dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
+
+    dim_list = [(dims.x, 'x', 0), (dims.y, 'y', 1), (dims.z, 'z', 2)]
+    dim_list.sort(key=lambda d: d[0])
+
+    smallest = dim_list[0]  # Should become Z (height)
+    middle = dim_list[1]    # Should become X (width)
+    largest = dim_list[2]   # Should become Y (length)
+
+    print(f"Smallest (height): {smallest[1]}={smallest[0]:.1f}")
+    print(f"Middle (width): {middle[1]}={middle[0]:.1f}")
+    print(f"Largest (length): {largest[1]}={largest[0]:.1f}")
+
+    # Rotate model to put smallest dimension on Z axis
+    if smallest[1] == 'x':
+        # X is smallest, rotate around Y by 90°
+        obj.rotation_euler.y = math.radians(90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    elif smallest[1] == 'y':
+        # Y is smallest, rotate around X by 90°
+        obj.rotation_euler.x = math.radians(90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    # else Z is already smallest, no rotation needed
+
+    # Now check if we need to rotate around Z to put length along Y
+    dims = obj.dimensions
+    if dims.x > dims.y:
+        obj.rotation_euler.z = math.radians(90)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
+    dims = obj.dimensions
+    print(f"Final dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
+
+def render_ship(input_stl, output_png, resolution=512, orientations=None):
+    """Main function to render a ship STL to a top-down PNG sprite."""
+    import mathutils  # Must import after bpy is loaded
+
+    # Make mathutils available globally
+    global mathutils
+    import mathutils
+
+    clear_scene()
+
+    # Import the model
+    obj = import_stl(input_stl)
+
+    # Center the object at origin
+    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+    obj.location = (0, 0, 0)
+
+    # Check for orientation override
+    ship_key = get_ship_key(output_png)
+    override = None
+    if orientations and ship_key:
+        override = orientations.get(ship_key)
+        if override:
+            print(f"Found orientation override for: {ship_key}")
+
+    # Rotate model so camera can look down Z for top-down view
+    if override:
+        orient_with_override(obj, override)
+    else:
+        orient_for_topdown(obj)
+
+    # Re-center after rotation
+    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+    obj.location = (0, 0, 0)
+
+    # Set up scene
+    setup_material(obj)
+    camera, cam_location = setup_camera_topdown(obj)
+    setup_lighting(cam_location)
+    setup_render_settings(output_png, resolution)
+
+    # Render
+    bpy.ops.render.render(write_still=True)
+    print(f"Rendered: {output_png}")
+
+def main():
+    # Get arguments after "--"
+    argv = sys.argv
+    if "--" in argv:
+        argv = argv[argv.index("--") + 1:]
+    else:
+        print("Usage: blender --background --python render_ship.py -- input.stl output.png [resolution]")
+        sys.exit(1)
+
+    if len(argv) < 2:
+        print("Usage: blender --background --python render_ship.py -- input.stl output.png [resolution]")
+        sys.exit(1)
+
+    input_stl = argv[0]
+    output_png = argv[1]
+    resolution = int(argv[2]) if len(argv) > 2 else 512
+
+    if not os.path.exists(input_stl):
+        print(f"Error: Input file not found: {input_stl}")
+        sys.exit(1)
+
+    # Load orientation overrides
+    orientations = load_orientations()
+    if orientations:
+        print(f"Loaded {len(orientations) - 1} orientation overrides")  # -1 for _comment
+
+    render_ship(input_stl, output_png, resolution, orientations)
+
+if __name__ == "__main__":
+    main()
