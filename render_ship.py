@@ -21,7 +21,10 @@ def load_orientations():
     return {}
 
 def get_ship_key(output_path):
-    """Extract ship key from output path (e.g., 'amarr/frigate/punisher')."""
+    """Extract ship key from output path (e.g., 'amarr/frigate/punisher').
+
+    Handles both standard paths and paths with spaces (pirate factions).
+    """
     # Normalize path and extract faction/class/ship
     path = output_path.replace('\\', '/')
     parts = path.split('/')
@@ -29,10 +32,14 @@ def get_ship_key(output_path):
     # Find the ship name (without .png)
     ship_name = os.path.splitext(parts[-1])[0]
 
+    # All known factions (including pirate sub-factions with spaces)
+    main_factions = ['amarr', 'caldari', 'gallente', 'minmatar', 'pirate',
+                     'ore', 'jove', 'concord', 'triglavian', 'sleeper',
+                     'rogue', 'special_edition', 'upwell']
+
     # Try to find faction/class/ship pattern
     for i, part in enumerate(parts):
-        if part in ['amarr', 'caldari', 'gallente', 'minmatar', 'pirate',
-                    'ore', 'jove', 'concord', 'triglavian', 'sleeper', 'rogue']:
+        if part in main_factions:
             if i + 2 < len(parts):
                 return f"{parts[i]}/{parts[i+1]}/{ship_name}"
             elif i + 1 < len(parts):
@@ -51,24 +58,38 @@ def import_stl(filepath):
     obj = bpy.context.selected_objects[0]
     return obj
 
-def setup_camera_topdown(obj):
-    """Set up an orthographic camera looking down Z axis at the object."""
+def setup_camera_topdown(obj, scale_override=None):
+    """Set up an orthographic camera looking down Z axis at the object.
+
+    Args:
+        obj: The Blender object to frame
+        scale_override: Optional dict with 'scale' multiplier for large models
+    """
     bpy.context.view_layer.update()
 
     dims = obj.dimensions
     # After orient_for_topdown, X=width, Y=length, Z=height
-    ortho_scale = max(dims.x, dims.y) * 1.1
+    base_scale = max(dims.x, dims.y)
 
-    # Camera above looking down -Z
-    cam_location = (0, 0, dims.z + 100)
+    # Apply scale multiplier for large/problematic models
+    scale_mult = 1.1  # Default 10% margin
+    if scale_override and 'scale' in scale_override:
+        scale_mult = scale_override['scale']
 
-    print(f"Camera: pos={cam_location}, ortho_scale={ortho_scale:.1f}")
+    ortho_scale = base_scale * scale_mult
+
+    # Camera above looking down -Z (far enough for any model)
+    cam_height = max(dims.z + 100, 1000)
+    cam_location = (0, 0, cam_height)
+
+    print(f"Camera: pos={cam_location}, ortho_scale={ortho_scale:.1f}, dims=({dims.x:.1f}, {dims.y:.1f}, {dims.z:.1f})")
 
     bpy.ops.object.camera_add(location=cam_location)
     camera = bpy.context.object
     camera.rotation_euler = (0, 0, 0)  # Look along -Z
     camera.data.type = 'ORTHO'
     camera.data.ortho_scale = ortho_scale
+    camera.data.clip_end = cam_height + dims.z + 1000  # Ensure clip plane is far enough
 
     bpy.context.scene.camera = camera
     return camera, cam_location
@@ -123,16 +144,33 @@ def orient_with_override(obj, override):
 
     Args:
         obj: The Blender object to orient
-        override: Dict with 'axis' (which axis should point UP) and 'rotation' (Z rotation)
+        override: Dict with orientation settings:
+            - axis: which STL axis should point UP (become Z) - 'x', 'y', or 'z'
+            - rotation: final Z rotation in degrees (for nose direction)
+            - flip: if True, rotate 180° (flip nose direction)
+            - rx, ry, rz: explicit euler rotations to apply (advanced)
     """
     bpy.context.view_layer.objects.active = obj
 
     dims = obj.dimensions.copy()
     print(f"Original dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
-    print(f"Applying override: axis={override['axis']}, rotation={override.get('rotation', 0)}")
+    print(f"Applying override: {override}")
 
+    # Check for explicit euler rotation mode (most control)
+    if 'rx' in override or 'ry' in override or 'rz' in override:
+        rx = override.get('rx', 0)
+        ry = override.get('ry', 0)
+        rz = override.get('rz', 0)
+        obj.rotation_euler.x = math.radians(rx)
+        obj.rotation_euler.y = math.radians(ry)
+        obj.rotation_euler.z = math.radians(rz)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+        dims = obj.dimensions
+        print(f"After explicit rotation: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
+        return
+
+    # Standard axis-based orientation
     up_axis = override.get('axis', 'z')
-    extra_rotation = override.get('rotation', 0)
 
     # Rotate to put specified axis pointing up (becoming Z)
     if up_axis == 'x':
@@ -151,7 +189,13 @@ def orient_with_override(obj, override):
         obj.rotation_euler.z = math.radians(90)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
 
-    # Apply any extra Z rotation from metadata
+    # Apply flip if nose is pointing wrong direction (rotate 180°)
+    if override.get('flip', False):
+        obj.rotation_euler.z = math.radians(180)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
+    # Apply any extra Z rotation from metadata (fine-tuning)
+    extra_rotation = override.get('rotation', 0)
     if extra_rotation != 0:
         obj.rotation_euler.z = math.radians(extra_rotation)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
@@ -239,7 +283,7 @@ def render_ship(input_stl, output_png, resolution=512, orientations=None):
 
     # Set up scene
     setup_material(obj)
-    camera, cam_location = setup_camera_topdown(obj)
+    camera, cam_location = setup_camera_topdown(obj, override)
     setup_lighting(cam_location)
     setup_render_settings(output_png, resolution)
 

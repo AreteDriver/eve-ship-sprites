@@ -28,7 +28,7 @@
     {"name": "exequror", "class": "cruiser", "x": 2560, "y": 1024, "index": 19},
     {"name": "ishtar", "class": "cruiser", "x": 3072, "y": 1024, "index": 20},
     {"name": "phobos", "class": "cruiser", "x": 0, "y": 1536, "index": 21},
-    {"name": "Proteus", "class": "cruiser", "x": 512, "y": 1536, "index": 22},
+    {"name": "proteus", "class": "cruiser", "x": 512, "y": 1536, "index": 22},
     {"name": "thorax", "class": "cruiser", "x": 1024, "y": 1536, "index": 23},
     {"name": "vexor_old", "class": "cruiser", "x": 1536, "y": 1536, "index": 24},
     {"name": "vexor", "class": "cruiser", "x": 2048, "y": 1536, "index": 25},

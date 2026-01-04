@@ -1,13 +1,14 @@
 {
   "name": "EVE Online Ship Sprites",
-  "version": "1.0",
+  "version": "2.0",
+  "generated": "2026-01-04",
   "sprite_size": 512,
   "total_ships": 318,
   "factions": [
-    {"name": "amarr", "ships": 55, "sheet": "amarr.png", "meta": "amarr.json"},
+    {"name": "amarr", "ships": 56, "sheet": "amarr.png", "meta": "amarr.json"},
     {"name": "caldari", "ships": 64, "sheet": "caldari.png", "meta": "caldari.json"},
     {"name": "gallente", "ships": 63, "sheet": "gallente.png", "meta": "gallente.json"},
-    {"name": "minmatar", "ships": 55, "sheet": "minmatar.png", "meta": "minmatar.json"},
+    {"name": "minmatar", "ships": 54, "sheet": "minmatar.png", "meta": "minmatar.json"},
     {"name": "pirate", "ships": 22, "sheet": "pirate.png", "meta": "pirate.json"},
     {"name": "ore", "ships": 13, "sheet": "ore.png", "meta": "ore.json"},
     {"name": "triglavian", "ships": 11, "sheet": "triglavian.png", "meta": "triglavian.json"},

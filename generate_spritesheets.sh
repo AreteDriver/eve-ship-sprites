@@ -7,8 +7,9 @@
 
 set -e
 
-SPRITES_DIR="/home/arete/eve-ship-sprites"
-OUTPUT_DIR="/home/arete/eve-ship-sprites/sheets"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SPRITES_DIR="$SCRIPT_DIR"
+OUTPUT_DIR="$SCRIPT_DIR/sheets"
 SPRITE_SIZE=512
 PADDING=0
 
@@ -18,8 +19,10 @@ echo "=== Generating Sprite Sheets by Faction ==="
 echo ""
 
 for faction_dir in "$SPRITES_DIR"/*/; do
-    # Skip the sheets output directory
+    # Skip non-faction directories
     [[ "$faction_dir" == *"/sheets/"* ]] && continue
+    [[ "$faction_dir" == *"/audit_sheets/"* ]] && continue
+    [[ "$faction_dir" == *"/EvE-3D-Printing/"* ]] && continue
 
     faction=$(basename "$faction_dir")
 

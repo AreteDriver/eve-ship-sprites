@@ -10,10 +10,10 @@
     {"name": "daredevil", "class": "angel cartel", "x": 512, "y": 0, "index": 1},
     {"name": "dramiel", "class": "angel cartel", "x": 1024, "y": 0, "index": 2},
     {"name": "machariel_final", "class": "angel cartel", "x": 1536, "y": 0, "index": 3},
-    {"name": "Ashimmu", "class": "blood raiders", "x": 0, "y": 512, "index": 4},
+    {"name": "ashimmu", "class": "blood raiders", "x": 0, "y": 512, "index": 4},
     {"name": "cruor", "class": "blood raiders", "x": 512, "y": 512, "index": 5},
-    {"name": "Pirate_Fighter_Bomber", "class": "fighter", "x": 1024, "y": 512, "index": 6},
-    {"name": "Pirate_Fighter", "class": "fighter", "x": 1536, "y": 512, "index": 7},
+    {"name": "pirate_fighter_bomber", "class": "fighter", "x": 1024, "y": 512, "index": 6},
+    {"name": "pirate_fighter", "class": "fighter", "x": 1536, "y": 512, "index": 7},
     {"name": "barghest", "class": "mordus legion", "x": 0, "y": 1024, "index": 8},
     {"name": "garmur", "class": "mordus legion", "x": 512, "y": 1024, "index": 9},
     {"name": "orthrus", "class": "mordus legion", "x": 1024, "y": 1024, "index": 10},
@@ -26,7 +26,7 @@
     {"name": "praxis", "class": "soct", "x": 512, "y": 2048, "index": 17},
     {"name": "sunesis", "class": "soct", "x": 1024, "y": 2048, "index": 18},
     {"name": "astero", "class": "soe", "x": 1536, "y": 2048, "index": 19},
-    {"name": "Nestor", "class": "soe", "x": 0, "y": 2560, "index": 20},
-    {"name": "Stratios", "class": "soe", "x": 512, "y": 2560, "index": 21}
+    {"name": "nestor", "class": "soe", "x": 0, "y": 2560, "index": 20},
+    {"name": "stratios", "class": "soe", "x": 512, "y": 2560, "index": 21}
   ]
 }
