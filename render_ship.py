@@ -12,6 +12,14 @@ import json
 
 # Path to orientation overrides (relative to script location)
 ORIENTATIONS_FILE = os.path.join(os.path.dirname(__file__), "ship_orientations.json")
+SIZES_FILE = os.path.join(os.path.dirname(__file__), "ship_sizes.json")
+
+# Scale configuration
+# Reference: frigate (75m) fills ~15% of frame, titan (14000m) fills 100%
+REFERENCE_SIZE_METERS = 75  # Frigate baseline
+MIN_FILL_RATIO = 0.12  # Smallest ships fill 12% of frame
+MAX_FILL_RATIO = 1.0   # Largest ships fill 100% of frame
+SCALE_POWER = 0.4  # Power curve (0.5 = sqrt, lower = more compressed range)
 
 def load_orientations():
     """Load ship orientation overrides from JSON file."""
@@ -19,6 +27,62 @@ def load_orientations():
         with open(ORIENTATIONS_FILE, 'r') as f:
             return json.load(f)
     return {}
+
+def load_ship_sizes():
+    """Load ship size data from JSON file."""
+    if os.path.exists(SIZES_FILE):
+        with open(SIZES_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def get_ship_size(ship_key, sizes_data):
+    """Get ship size in meters from sizes data.
+
+    Falls back to class defaults if specific ship not found.
+    Returns None if no size data available.
+    """
+    if not sizes_data or not ship_key:
+        return None
+
+    # Try exact match first
+    if ship_key in sizes_data:
+        return sizes_data[ship_key]
+
+    # Try class default based on path
+    parts = ship_key.split('/')
+    if len(parts) >= 2:
+        ship_class = parts[1]  # e.g., 'frigate', 'cruiser', 'capital'
+        class_defaults = sizes_data.get('_class_defaults', {})
+        if ship_class in class_defaults:
+            return class_defaults[ship_class]
+
+    return None
+
+def calculate_fill_ratio(size_meters):
+    """Calculate how much of the frame the ship should fill based on its size.
+
+    Uses a power curve to compress the wide range of ship sizes (75m to 14000m)
+    into a visually useful range (12% to 100% of frame).
+    """
+    if size_meters is None:
+        return MAX_FILL_RATIO  # Default: fill frame if size unknown
+
+    # Normalize to reference size
+    normalized = size_meters / REFERENCE_SIZE_METERS
+
+    # Apply power curve to compress range
+    # e.g., power=0.4 means titan (186x frigate) appears as 186^0.4 = 9.5x larger
+    scaled = pow(normalized, SCALE_POWER)
+
+    # Map to fill ratio range
+    # At normalized=1 (frigate), scaled=1, fill=MIN_FILL_RATIO
+    # At normalized=186 (titan), scaled=9.5, we want fill=MAX_FILL_RATIO
+    max_normalized = pow(14000 / REFERENCE_SIZE_METERS, SCALE_POWER)  # ~9.5
+
+    fill = MIN_FILL_RATIO + (MAX_FILL_RATIO - MIN_FILL_RATIO) * (scaled - 1) / (max_normalized - 1)
+
+    # Clamp to valid range
+    return max(MIN_FILL_RATIO, min(MAX_FILL_RATIO, fill))
 
 def get_ship_key(output_path):
     """Extract ship key from output path (e.g., 'amarr/frigate/punisher').
@@ -58,25 +122,33 @@ def import_stl(filepath):
     obj = bpy.context.selected_objects[0]
     return obj
 
-def setup_camera_topdown(obj, scale_override=None):
+def setup_camera_topdown(obj, scale_override=None, fill_ratio=1.0, resolution=512):
     """Set up an orthographic camera looking down Z axis at the object.
 
     Args:
         obj: The Blender object to frame
         scale_override: Optional dict with 'scale' multiplier for large models
+        fill_ratio: How much of the frame the ship should fill (0.0-1.0)
+        resolution: Output resolution in pixels
     """
     bpy.context.view_layer.update()
 
     dims = obj.dimensions
     # After orient_for_topdown, X=width, Y=length, Z=height
-    base_scale = max(dims.x, dims.y)
+    model_extent = max(dims.x, dims.y)
 
     # Apply scale multiplier for large/problematic models
     scale_mult = 1.1  # Default 10% margin
     if scale_override and 'scale' in scale_override:
         scale_mult = scale_override['scale']
 
-    ortho_scale = base_scale * scale_mult
+    # Calculate ortho_scale to achieve desired fill ratio
+    # ortho_scale is how many Blender units fit in the frame
+    # To make ship fill X% of frame: ortho_scale = model_extent / fill_ratio
+    target_fill = fill_ratio * scale_mult
+    ortho_scale = model_extent / target_fill
+
+    print(f"Size scaling: fill_ratio={fill_ratio:.2f}, model={model_extent:.1f}, ortho_scale={ortho_scale:.1f}")
 
     # Camera above looking down -Z (far enough for any model)
     cam_height = max(dims.z + 100, 1000)
@@ -246,7 +318,7 @@ def orient_for_topdown(obj):
     dims = obj.dimensions
     print(f"Final dimensions: X={dims.x:.1f}, Y={dims.y:.1f}, Z={dims.z:.1f}")
 
-def render_ship(input_stl, output_png, resolution=512, orientations=None):
+def render_ship(input_stl, output_png, resolution=512, orientations=None, sizes=None):
     """Main function to render a ship STL to a top-down PNG sprite."""
     import mathutils  # Must import after bpy is loaded
 
@@ -271,6 +343,12 @@ def render_ship(input_stl, output_png, resolution=512, orientations=None):
         if override:
             print(f"Found orientation override for: {ship_key}")
 
+    # Get ship size and calculate fill ratio
+    ship_size = get_ship_size(ship_key, sizes)
+    fill_ratio = calculate_fill_ratio(ship_size)
+    if ship_size:
+        print(f"Ship size: {ship_size}m -> fill ratio: {fill_ratio:.2f}")
+
     # Rotate model so camera can look down Z for top-down view
     if override:
         orient_with_override(obj, override)
@@ -283,7 +361,7 @@ def render_ship(input_stl, output_png, resolution=512, orientations=None):
 
     # Set up scene
     setup_material(obj)
-    camera, cam_location = setup_camera_topdown(obj, override)
+    camera, cam_location = setup_camera_topdown(obj, override, fill_ratio, resolution)
     setup_lighting(cam_location)
     setup_render_settings(output_png, resolution)
 
@@ -315,9 +393,17 @@ def main():
     # Load orientation overrides
     orientations = load_orientations()
     if orientations:
-        print(f"Loaded {len(orientations) - 1} orientation overrides")  # -1 for _comment
+        # Count non-comment entries
+        count = len([k for k in orientations.keys() if not k.startswith('_')])
+        print(f"Loaded {count} orientation overrides")
 
-    render_ship(input_stl, output_png, resolution, orientations)
+    # Load ship sizes
+    sizes = load_ship_sizes()
+    if sizes:
+        count = len([k for k in sizes.keys() if not k.startswith('_')])
+        print(f"Loaded {count} ship sizes")
+
+    render_ship(input_stl, output_png, resolution, orientations, sizes)
 
 if __name__ == "__main__":
     main()
