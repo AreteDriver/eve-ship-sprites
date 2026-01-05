@@ -77,6 +77,10 @@
   "minmatar/capital/ragnarok": 14200,
   "minmatar/capital/fenrir": 1580,
   "minmatar/capital/nomad": 1650,
+  "minmatar/shuttle_minmatar": 30,
+  "amarr/shuttle_amarr": 30,
+  "caldari/shuttle_caldari": 30,
+  "gallente/shuttle_gallente": 30,
 
   "_section_amarr": "Amarr ships",
   "amarr/frigate/executioner": 68,
