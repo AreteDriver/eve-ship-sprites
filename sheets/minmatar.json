@@ -50,15 +50,14 @@
     {"name": "probe", "class": "frigate", "x": 3072, "y": 2560, "index": 41},
     {"name": "reaper", "class": "frigate", "x": 0, "y": 3072, "index": 42},
     {"name": "rifter", "class": "frigate", "x": 512, "y": 3072, "index": 43},
-    {"name": "rifter_test", "class": "frigate", "x": 1024, "y": 3072, "index": 44},
-    {"name": "scalpel", "class": "frigate", "x": 1536, "y": 3072, "index": 45},
-    {"name": "slasher", "class": "frigate", "x": 2048, "y": 3072, "index": 46},
-    {"name": "stiletto", "class": "frigate", "x": 2560, "y": 3072, "index": 47},
-    {"name": "vigil", "class": "frigate", "x": 3072, "y": 3072, "index": 48},
-    {"name": "wolf", "class": "frigate", "x": 0, "y": 3584, "index": 49},
-    {"name": "hoarder", "class": "industrial", "x": 512, "y": 3584, "index": 50},
-    {"name": "mammoth", "class": "industrial", "x": 1024, "y": 3584, "index": 51},
-    {"name": "wreathe", "class": "industrial", "x": 1536, "y": 3584, "index": 52},
-    {"name": "shuttle_minmatar", "class": "minmatar", "x": 2048, "y": 3584, "index": 53}
+    {"name": "scalpel", "class": "frigate", "x": 1024, "y": 3072, "index": 44},
+    {"name": "slasher", "class": "frigate", "x": 1536, "y": 3072, "index": 45},
+    {"name": "stiletto", "class": "frigate", "x": 2048, "y": 3072, "index": 46},
+    {"name": "vigil", "class": "frigate", "x": 2560, "y": 3072, "index": 47},
+    {"name": "wolf", "class": "frigate", "x": 3072, "y": 3072, "index": 48},
+    {"name": "hoarder", "class": "industrial", "x": 0, "y": 3584, "index": 49},
+    {"name": "mammoth", "class": "industrial", "x": 512, "y": 3584, "index": 50},
+    {"name": "wreathe", "class": "industrial", "x": 1024, "y": 3584, "index": 51},
+    {"name": "shuttle_minmatar", "class": "minmatar", "x": 1536, "y": 3584, "index": 52}
   ]
 }
