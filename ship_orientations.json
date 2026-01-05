@@ -94,6 +94,9 @@
     "scale": 1.5
   },
   "_section_amarr": "Amarr ships - curved hulls, some need explicit rotation",
+  "amarr/industrial/bestower": {
+    "rx": -90
+  },
   "amarr/frigate/tormentor": {
     "axis": "z"
   },
@@ -125,9 +128,6 @@
     "axis": "z"
   },
   "amarr/capital/aeon": {
-    "rx": 90,
-    "ry": 90,
-    "rz": 0,
     "scale": 1.5
   },
   "amarr/capital/revelation": {
