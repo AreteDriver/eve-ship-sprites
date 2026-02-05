@@ -17,9 +17,104 @@ SIZES_FILE = os.path.join(os.path.dirname(__file__), "ship_sizes.json")
 # Scale configuration
 # Reference: frigate (75m) fills ~15% of frame, titan (14000m) fills 100%
 REFERENCE_SIZE_METERS = 75  # Frigate baseline
-MIN_FILL_RATIO = 0.12  # Smallest ships fill 12% of frame
+MIN_FILL_RATIO = 0.85  # All ships fill most of frame (game sprites)
 MAX_FILL_RATIO = 1.0   # Largest ships fill 100% of frame
 SCALE_POWER = 0.4  # Power curve (0.5 = sqrt, lower = more compressed range)
+
+# Faction color palettes (base_color, metallic, roughness, specular_tint)
+FACTION_MATERIALS = {
+    'amarr': {
+        'base_color': (0.85, 0.65, 0.25, 1.0),  # Gold/bronze
+        'metallic': 0.9,
+        'roughness': 0.15,
+        'specular': 0.8,
+    },
+    'caldari': {
+        'base_color': (0.55, 0.6, 0.7, 1.0),  # Blue-gray chrome
+        'metallic': 0.95,
+        'roughness': 0.12,
+        'specular': 0.9,
+    },
+    'gallente': {
+        'base_color': (0.4, 0.55, 0.35, 1.0),  # Olive-green
+        'metallic': 0.7,
+        'roughness': 0.25,
+        'specular': 0.6,
+    },
+    'minmatar': {
+        'base_color': (0.65, 0.4, 0.28, 1.0),  # Rust/copper
+        'metallic': 0.6,
+        'roughness': 0.35,
+        'specular': 0.5,
+    },
+    'pirate': {
+        'base_color': (0.25, 0.22, 0.25, 1.0),  # Dark gunmetal
+        'metallic': 0.85,
+        'roughness': 0.2,
+        'specular': 0.7,
+    },
+    'triglavian': {
+        'base_color': (0.6, 0.15, 0.15, 1.0),  # Deep red
+        'metallic': 0.8,
+        'roughness': 0.18,
+        'specular': 0.75,
+    },
+    'sleeper': {
+        'base_color': (0.5, 0.55, 0.5, 1.0),  # Faded teal-gray
+        'metallic': 0.75,
+        'roughness': 0.22,
+        'specular': 0.65,
+    },
+    'rogue': {
+        'base_color': (0.3, 0.32, 0.35, 1.0),  # Industrial gray
+        'metallic': 0.7,
+        'roughness': 0.3,
+        'specular': 0.55,
+    },
+    'concord': {
+        'base_color': (0.2, 0.25, 0.45, 1.0),  # Deep blue
+        'metallic': 0.9,
+        'roughness': 0.1,
+        'specular': 0.85,
+    },
+    'ore': {
+        'base_color': (0.7, 0.55, 0.25, 1.0),  # Industrial orange
+        'metallic': 0.5,
+        'roughness': 0.4,
+        'specular': 0.4,
+    },
+    'jove': {
+        'base_color': (0.7, 0.72, 0.75, 1.0),  # Pristine silver
+        'metallic': 1.0,
+        'roughness': 0.08,
+        'specular': 1.0,
+    },
+    'nation': {
+        'base_color': (0.15, 0.15, 0.18, 1.0),  # Near-black
+        'metallic': 0.9,
+        'roughness': 0.15,
+        'specular': 0.8,
+    },
+    'raiders': {
+        'base_color': (0.45, 0.35, 0.3, 1.0),  # Weathered brown
+        'metallic': 0.55,
+        'roughness': 0.45,
+        'specular': 0.4,
+    },
+    'upwell': {
+        'base_color': (0.6, 0.62, 0.65, 1.0),  # Clean industrial
+        'metallic': 0.8,
+        'roughness': 0.2,
+        'specular': 0.7,
+    },
+    # Default fallback
+    '_default': {
+        'base_color': (0.5, 0.52, 0.55, 1.0),  # Neutral gray
+        'metallic': 0.75,
+        'roughness': 0.25,
+        'specular': 0.6,
+    },
+}
 
 def load_orientations():
     """Load ship orientation overrides from JSON file."""
@@ -166,31 +261,80 @@ def setup_camera_topdown(obj, scale_override=None, fill_ratio=1.0, resolution=51
     bpy.context.scene.camera = camera
     return camera, cam_location
 
+def get_faction_from_path(output_path):
+    """Extract faction name from output path."""
+    path = output_path.replace('\\', '/').lower()
+
+    # Check for main factions in path
+    for faction in FACTION_MATERIALS.keys():
+        if faction != '_default' and f'/{faction}/' in path:
+            return faction
+
+    # Fallback: check if faction is at start of relative path
+    parts = path.split('/')
+    for part in parts:
+        if part in FACTION_MATERIALS and part != '_default':
+            return part
+
+    return '_default'
+
 def setup_lighting(camera_location):
-    """Set up even lighting from camera direction for clear sprite rendering."""
-    # Key light from camera direction
-    bpy.ops.object.light_add(type='SUN', location=camera_location)
-    sun = bpy.context.object
-    sun.data.energy = 3
+    """Set up dramatic lighting with key, fill, and rim lights for polished sprites."""
+    cam_z = camera_location[2]
 
-    # Additional fill lights from different angles
-    bpy.ops.object.light_add(type='SUN', location=(100, 100, 100))
-    fill1 = bpy.context.object
-    fill1.data.energy = 1
+    # Key light - main illumination from upper-front-right (45° angle)
+    bpy.ops.object.light_add(type='SUN', location=(150, -150, cam_z * 0.8))
+    key_light = bpy.context.object
+    key_light.rotation_euler = (math.radians(45), math.radians(15), math.radians(-45))
+    key_light.data.energy = 4.0
+    key_light.data.angle = math.radians(5)  # Slightly soft shadows
 
-    bpy.ops.object.light_add(type='SUN', location=(-100, -100, 100))
-    fill2 = bpy.context.object
-    fill2.data.energy = 1
+    # Fill light - softer from opposite side to reduce harsh shadows
+    bpy.ops.object.light_add(type='SUN', location=(-120, 120, cam_z * 0.6))
+    fill_light = bpy.context.object
+    fill_light.rotation_euler = (math.radians(50), math.radians(-10), math.radians(135))
+    fill_light.data.energy = 1.5
+    fill_light.data.angle = math.radians(15)  # Very soft
 
-def setup_material(obj):
-    """Apply a simple material to the object."""
-    mat = bpy.data.materials.new(name="ShipMaterial")
+    # Rim light - behind and below for edge definition (creates that "glow" outline)
+    bpy.ops.object.light_add(type='SUN', location=(0, 200, cam_z * 0.3))
+    rim_light = bpy.context.object
+    rim_light.rotation_euler = (math.radians(75), 0, math.radians(180))
+    rim_light.data.energy = 2.5
+    rim_light.data.angle = math.radians(2)  # Sharp for crisp rim
+
+    # Top fill - gentle ambient from above to prevent pure black shadows
+    bpy.ops.object.light_add(type='SUN', location=(0, 0, cam_z))
+    top_fill = bpy.context.object
+    top_fill.rotation_euler = (0, 0, 0)
+    top_fill.data.energy = 0.8
+    top_fill.data.angle = math.radians(45)  # Very diffuse
+
+def setup_material(obj, faction='_default'):
+    """Apply faction-specific material to the object with polished appearance."""
+    mat_config = FACTION_MATERIALS.get(faction, FACTION_MATERIALS['_default'])
+    print(f"Applying {faction} material: {mat_config['base_color'][:3]}")
+
+    mat = bpy.data.materials.new(name=f"ShipMaterial_{faction}")
     mat.use_nodes = True
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    bsdf.inputs["Base Color"].default_value = (0.4, 0.45, 0.5, 1.0)  # Metallic gray-blue
-    bsdf.inputs["Metallic"].default_value = 0.8
-    bsdf.inputs["Roughness"].default_value = 0.3
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
 
+    # Get the principled BSDF
+    bsdf = nodes["Principled BSDF"]
+
+    # Apply faction colors and material properties
+    bsdf.inputs["Base Color"].default_value = mat_config['base_color']
+    bsdf.inputs["Metallic"].default_value = mat_config['metallic']
+    bsdf.inputs["Roughness"].default_value = mat_config['roughness']
+    bsdf.inputs["Specular IOR Level"].default_value = mat_config['specular']
+
+    # Add subtle clearcoat for extra shine on metallic ships
+    if mat_config['metallic'] > 0.7:
+        bsdf.inputs["Coat Weight"].default_value = 0.15
+        bsdf.inputs["Coat Roughness"].default_value = 0.1
+
+    # Assign material to object
     if obj.data.materials:
         obj.data.materials[0] = mat
     else:
@@ -200,8 +344,9 @@ def setup_render_settings(output_path, resolution=512):
     """Configure render settings for sprite output."""
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 64  # Reasonable quality without too much time
+    scene.cycles.samples = 128  # Higher quality for better specular/rim lighting
     scene.cycles.use_denoising = True
+    scene.cycles.denoiser = 'OPENIMAGEDENOISE'  # Best denoiser for clean results
 
     scene.render.resolution_x = resolution
     scene.render.resolution_y = resolution
@@ -359,8 +504,12 @@ def render_ship(input_stl, output_png, resolution=512, orientations=None, sizes=
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
     obj.location = (0, 0, 0)
 
+    # Detect faction for material coloring
+    faction = get_faction_from_path(output_png)
+    print(f"Detected faction: {faction}")
+
     # Set up scene
-    setup_material(obj)
+    setup_material(obj, faction)
     camera, cam_location = setup_camera_topdown(obj, override, fill_ratio, resolution)
     setup_lighting(cam_location)
     setup_render_settings(output_png, resolution)

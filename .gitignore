@@ -7,3 +7,8 @@ EvE-3D-Printing/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment files
+.env
+.env.*
+.env.local
